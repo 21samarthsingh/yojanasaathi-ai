@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YojanaSaathi AI: The Right Scheme. The Right Guidance.</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1f3a'/%3E%3Cpath d='M16 5l9 3v7c0 6-4 10-9 12-5-2-9-6-9-12V8z' fill='%2310b981'/%3E%3Cpath d='M12 16l3 3 5-6' stroke='white' stroke-width='2.4' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>tailwind.config={theme:{extend:{colors:{navy:'#0b1f3a',mint:'#10b981'}}}}</script>
+<style type="text/tailwindcss">
+.card{@apply bg-white rounded-2xl border border-slate-200 shadow-sm p-5 transition hover:shadow-md}
+.btn{@apply inline-flex items-center gap-1 bg-mint text-white font-medium rounded-lg px-4 py-2 hover:bg-emerald-600 transition text-sm}
+.btn2{@apply inline-flex items-center gap-1 border border-slate-300 rounded-lg px-4 py-2 text-sm hover:bg-slate-100 transition bg-white}
+.chip{@apply inline-block text-xs bg-emerald-50 text-emerald-700 rounded-full px-2 py-0.5}
+.inp{@apply w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-mint}
+h1{@apply text-2xl md:text-3xl font-bold text-navy} h2{@apply text-lg font-semibold text-navy}
+a.l{@apply text-emerald-700 underline}
+</style></head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col" style="font-family:Inter,system-ui,sans-serif">
+<header class="sticky top-0 z-20 bg-navy text-white shadow">
+ <div class="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4">
+  <a href="#/" class="flex items-center gap-2 font-semibold shrink-0">
+   <svg width="28" height="28" viewBox="0 0 32 32"><rect width="32" height="32" rx="8" fill="#10b981" opacity=".15"/><path d="M16 5l9 3v7c0 6-4 10-9 12-5-2-9-6-9-12V8z" fill="#10b981"/><path d="M12 16l3 3 5-6" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+   <span id="bn">YojanaSaathi</span> <span class="text-mint" id="ba">AI</span></a>
+  <nav id="nav" class="flex gap-1 overflow-x-auto text-sm"></nav>
+ </div>
+</header>
+<main id="app" class="max-w-6xl mx-auto px-4 py-8 flex-1 w-full"></main>
+<footer class="bg-white border-t text-xs text-slate-500 py-5 px-4 text-center">
+ YojanaSaathi AI is an independent guide and is <b>not affiliated with any government body</b>. Information may be outdated; eligibility is decided only by the official authority. Always confirm on the official website. Never share Aadhaar numbers, OTPs, passwords or bank details here.
+</footer>
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-navy text-white text-sm rounded-lg px-4 py-2 shadow-lg hidden z-50"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let S={profile:{},saved:[],recent:[],checks:{},chats:[],lang:'en'};
+try{S={...S,...JSON.parse(localStorage.getItem('ys')||'{}')}}catch{}
+const save=()=>localStorage.setItem('ys',JSON.stringify(S));
+const BASE=location.protocol==='file:'?'http://localhost:8000':'';
+const NOSRV='Cannot reach the server. Start it with "uvicorn main:app --reload" in the backend folder, then open http://localhost:8000';
+const api=async(p,o={})=>{let r;try{r=await fetch(BASE+'/api'+p,{method:o.m||'GET',headers:{'Content-Type':'application/json',...(o.h||{})},body:o.b?JSON.stringify(o.b):undefined})}catch{throw new Error(NOSRV)};
+ if(!r.ok){let d='';try{const j=await r.json();d=typeof j.detail==='string'?j.detail:'Invalid input'}catch{}throw new Error(d||r.statusText)}return r.json()};
+const toast=m=>{const t=$('#toast');t.textContent=(S.lang==='hi'&&HI[m])||m;t.classList.remove('hidden');clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.add('hidden'),2600)};
+const loading='<div class="py-16 text-center text-slate-500 animate-pulse">Loading…</div>';
+const errBox=m=>`<div class="card border-red-200 bg-red-50 text-red-700">⚠ ${esc(m)}</div>`;
+let ALL=null;const schemes=async()=>ALL||(ALL=(await api('/schemes')).items);
+const H=()=>S.lang==='hi';
+const LOC=s=>{if(!H()||!s.hi)return s;const h=s.hi;return {...s,...h,documents:s.documents.map((d,i)=>({...d,name:h.documents?.[i]??d.name}))}};
+const vb=s=>s.verification_status==='verified'?`<span class="chip">${H()?'✔ सत्यापित':'✔ Verified'} ${esc(s.last_verified)}</span>`:`<span class="chip !bg-amber-50 !text-amber-700">${H()?'नमूना · अभी सत्यापित नहीं':'Sample · not yet verified'}</span>`;
+const ul=a=>`<ul class="list-disc pl-5 space-y-1 text-sm">${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`;
+const fmt=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(https:\/\/[^\s<)]+)/g,'<a class="l" target="_blank" rel="noopener noreferrer" href="$1">$1</a>').replace(/\n/g,'<br>');
+
+const NAV=[['','Home'],['finder','Find schemes'],['assistant','AI Assistant'],['explore','Explore'],['docs','Document AI'],['dashboard','Dashboard'],['saved','Saved'],['settings','Settings']];
+function nav(p){const items=[...NAV];if(sessionStorage.getItem('ak'))items.push(['admin','Admin']);
+ $('#nav').innerHTML=items.map(([k,t])=>`<a href="#/${k}" class="px-3 py-1.5 rounded-lg whitespace-nowrap ${k===p?'bg-white/15':'hover:bg-white/10'}">${t}</a>`).join('')}
+
+/* ---------- Home ---------- */
+async function home(){$('#app').innerHTML=`
+<section class="grid md:grid-cols-2 gap-8 items-center py-6">
+ <div><span class="chip">Independent guide · Hindi &amp; English</span>
+ <h1 class="!text-4xl md:!text-5xl mt-4 leading-tight">The Right Scheme. The Right Guidance. For Everyone.</h1>
+ <p class="mt-4 text-slate-600">Discover government schemes, understand eligibility in simple language, prepare your documents and reach the official portal.</p>
+ <div class="mt-6 flex gap-3 flex-wrap"><a class="btn" href="#/finder">Find my schemes →</a><a class="btn2" href="#/assistant">Ask the AI assistant</a></div></div>
+ <div class="card !bg-navy text-white"><h2 class="!text-white mb-3">Your journey</h2>
+ <ol class="space-y-2 text-sm">${['Choose your state and category','Share basic, non-sensitive details','Get schemes that may fit you','Understand eligibility in Hindi or English','Generate your document checklist','Follow the roadmap to the official portal'].map((t,i)=>`<li class="flex gap-3 items-center"><span class="w-6 h-6 rounded-full bg-mint grid place-items-center text-xs font-bold">${i+1}</span>${t}</li>`).join('')}</ol></div>
+</section>
+<section class="grid md:grid-cols-3 gap-4 mt-6">
+ ${[['Grounded answers','The assistant answers only from structured scheme records and cites the official link. If it does not know, it says so.'],['Privacy first','No Aadhaar, OTPs or bank details. Your profile stays in your browser.'],['Honest about limits','We show when each record was last verified and never promise eligibility.']].map(([a,b])=>`<div class="card"><h2>${a}</h2><p class="text-sm text-slate-600 mt-2">${b}</p></div>`).join('')}
+</section>`}
+
+/* ---------- Finder ---------- */
+const STATES="Andhra Pradesh,Arunachal Pradesh,Assam,Bihar,Chhattisgarh,Goa,Gujarat,Haryana,Himachal Pradesh,Jharkhand,Karnataka,Kerala,Madhya Pradesh,Maharashtra,Manipur,Meghalaya,Mizoram,Nagaland,Odisha,Punjab,Rajasthan,Sikkim,Tamil Nadu,Telangana,Tripura,Uttar Pradesh,Uttarakhand,West Bengal,Delhi,Jammu and Kashmir,Ladakh,Puducherry,Chandigarh".split(',');
+const sel=(id,label,opts,val)=>`<label class="block text-sm font-medium">${label}<select id="${id}" class="inp mt-1"><option value="">Select…</option>${opts.map(o=>{const [v,t]=Array.isArray(o)?o:[o,o];return `<option value="${esc(v)}" ${val===v?'selected':''}>${esc(t)}</option>`}).join('')}</select></label>`;
+const card=(s,why=[],ask=0)=>{const sv=S.saved.includes(s.id),L=LOC(s);return `<div class="card flex flex-col">
+ <div class="flex justify-between gap-2 flex-wrap"><span class="chip">${esc(L.category)} · ${s.level==='central'?(H()?'केंद्रीय':'Central'):(H()?'राज्य':'State')}</span>${vb(s)}</div>
+ <h3 class="font-semibold text-navy mt-3">${esc(L.name)}</h3><p class="text-sm text-slate-600 mt-1">${esc(L.description)}</p>
+ ${why.length?`<div class="mt-3 text-sm"><b>Why it may be relevant</b>${ul(why)}</div>`:''}
+ ${ask?`<p class="text-xs text-amber-700 mt-2">${H()?ask+' शर्त(ें) की पुष्टि आपको करनी है':ask+' condition(s) need your confirmation'}</p>`:''}
+ <p class="text-sm mt-3"><b>Key benefit:</b> ${esc(L.benefits[0])}</p>
+ <div class="mt-2 flex flex-wrap gap-1">${L.beneficiaries.map(b=>`<span class="chip !bg-slate-100 !text-slate-600">${esc(b)}</span>`).join('')}</div>
+ <div class="mt-4 flex gap-2 pt-2 mt-auto"><a class="btn" href="#/scheme/${s.id}">View details</a><button class="btn2" onclick="toggleSave('${s.id}',this)">${sv?'★ Saved':'☆ Save'}</button></div></div>`};
+function toggleSave(id,btn){const i=S.saved.indexOf(id);i<0?S.saved.push(id):S.saved.splice(i,1);save();if(btn)btn.textContent=i<0?'★ Saved':'☆ Save';toast(i<0?'Saved to your dashboard':'Removed from saved')}
+function readProfile(){const g=i=>$('#'+i).value||null;return{age_group:g('age_group'),state:g('state'),occupation:g('occupation'),income:g('income'),education:g('education'),social:g('social'),owns_land:{yes:true,no:false}[$('#land').value]??null}}
+const P=()=>S.profile||{};const PL=()=>({...P(),lang:S.lang});
+async function finder(){const p=P();$('#app').innerHTML=`<h1>Smart Scheme Finder</h1><p class="text-slate-600 text-sm mt-1">Share only what you are comfortable with. Nothing here is sensitive, and it stays in your browser.</p>
+ <form onsubmit="event.preventDefault();runFinder()" class="card mt-5 grid sm:grid-cols-2 md:grid-cols-3 gap-4">
+ ${sel('state','State',STATES,p.state)}${sel('age_group','Age group',[['under18','Under 18'],['18-25','18–25'],['26-40','26–40'],['41-60','41–60'],['60+','60+']],p.age_group)}
+ ${sel('occupation','You are a…',[['student','Student'],['farmer','Farmer'],['worker','Worker / labourer'],['business','Business owner'],['other','Other']],p.occupation)}
+ ${sel('income','Annual family income',[['lt1','Below ₹1 lakh'],['1-2.5','₹1–2.5 lakh'],['2.5-8','₹2.5–8 lakh'],['gt8','Above ₹8 lakh']],p.income)}
+ ${sel('education','Education level',[['below10','Below 10th'],['10th','10th pass'],['12th','12th pass'],['graduate','Graduate'],['pg','Postgraduate']],p.education)}
+ ${sel('social','Category (optional)',[['General','General'],['OBC','OBC'],['SC','SC'],['ST','ST'],['EWS','EWS'],['EBC/DNT','EBC / DNT'],['na','Prefer not to say']],p.social)}
+ ${sel('land','Family owns cultivable land? (optional)',[['yes','Yes'],['no','No']],p.owns_land===true?'yes':p.owns_land===false?'no':'')}
+ <div class="sm:col-span-2 flex items-end"><button class="btn">Find schemes</button></div></form><div id="res" class="mt-6"></div>`;
+ if(Object.values(p).some(v=>v!==null&&v!==undefined&&v!==''))runFinder(true)}
+async function runFinder(quiet){S.profile=readProfile();save();$('#res').innerHTML=loading;
+ try{const r=await api('/recommend',{m:'POST',b:{...S.profile,lang:S.lang}});
+ $('#res').innerHTML=`<h2 class="mb-1">${H()?r.items.length+' योजनाएँ आपके लिए उपयोगी हो सकती हैं':r.items.length+' schemes that may be relevant'}</h2><p class="text-xs text-slate-500 mb-4">Indicative only. The official authority decides eligibility.</p><div class="grid md:grid-cols-2 gap-4">${r.items.map(x=>card(x.scheme,x.why,x.ask.length)).join('')}</div>`;
+ if(!quiet)toast('Recommendations ready')}catch(e){$('#res').innerHTML=errBox(e.message)}}
+
+/* ---------- Explorer ---------- */
+async function explore(){const a=await schemes();const u=k=>{const m=new Map();a.forEach(s=>{const L=LOC(s);(k==='b'?s.beneficiaries:[s.category]).forEach((v,i)=>m.set(v,k==='b'?L.beneficiaries[i]:L.category))});return [...m]};
+ $('#app').innerHTML=`<h1>Scheme Explorer</h1><div class="card mt-5 grid sm:grid-cols-2 md:grid-cols-5 gap-3">
+ <input id="fq" class="inp md:col-span-2" placeholder="Search by scheme name…" oninput="xl()">
+ ${sel('fs','State',STATES,'')}${sel('fc','Category',u('c'),'')}${sel('fb','Beneficiary',u('b'),'')}${sel('fl','Level',[['central','Central'],['state','State']],'')}</div><div id="xl" class="grid md:grid-cols-2 gap-4 mt-6"></div>`;
+ ['fs','fc','fb','fl'].forEach(i=>$('#'+i).onchange=xl);xl()}
+async function xl(){const a=await schemes(),q=$('#fq').value.toLowerCase().split(/\s+/).filter(Boolean),v=i=>$('#'+i).value;
+ const r=a.map(s=>[q.reduce((n,w)=>n+((s.name+' '+s.description+' '+s.keywords.join(' ')+' '+(s.hi?s.hi.name+' '+s.hi.description:'')).toLowerCase().includes(w)?1:0),0),s])
+ .filter(([n,s])=>(!q.length||n)&&(!v('fs')||['ALL',v('fs')].includes(s.state))&&(!v('fc')||s.category===v('fc'))&&(!v('fb')||s.beneficiaries.includes(v('fb')))&&(!v('fl')||s.level===v('fl'))).sort((x,y)=>y[0]-x[0]);
+ $('#xl').innerHTML=r.length?r.map(([,s])=>card(s)).join(''):'<div class="card md:col-span-2 text-center text-slate-500">No schemes match these filters. Try clearing one.</div>'}
+
+/* ---------- Scheme detail ---------- */
+async function detail(id){const s=await api('/schemes/'+encodeURIComponent(id));
+ S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,6);save();const L=LOC(s),h=H();
+ const steps=[['Understand the scheme',L.description],['Check eligibility conditions','Use the Eligibility tab, then confirm on the official site.'],['Prepare required documents','Use the Documents tab and tick items as you collect them.'],['Visit the official application portal',`<a class="l" target="_blank" rel="noopener noreferrer" href="${esc(s.official_url)}">${esc(s.official_url)}</a>`],['Complete the application',ul(L.steps)],['Submit and save the acknowledgement','Keep the application number or receipt safely.'],['Track status on the official portal','Where the portal offers status tracking.']];
+ $('#app').innerHTML=`<a href="#/explore" class="text-sm l">← All schemes</a>
+ <div class="flex flex-wrap justify-between gap-3 mt-2"><div><span class="chip">${esc(L.category)}</span> ${vb(s)}<h1 class="mt-2">${esc(L.name)}</h1><p class="text-sm text-slate-500">${esc(L.department)}</p></div>
+ <div class="flex gap-2 items-start flex-wrap"><button class="btn2" onclick="toggleSave('${s.id}',this)">${S.saved.includes(s.id)?'★ Saved':'☆ Save'}</button><a class="btn" target="_blank" rel="noopener noreferrer" href="${esc(s.official_url)}">Official portal ↗</a></div></div>
+ <div class="mt-4 p-3 rounded-lg bg-amber-50 text-amber-800 text-sm">${L.warnings.map(esc).join(' ')||(h?'नियम और तिथियाँ बदल सकती हैं।':'Rules and dates may change.')} ${h?'अंतिम सत्यापन':'Last verified'}: ${esc(s.last_verified||(h?'अभी नहीं':'not yet verified'))}. ${h?'स्रोत':'Source'}: <a class="l" target="_blank" rel="noopener noreferrer" href="${esc(s.source_url)}">${esc(s.source_url)}</a></div>
+ <div class="mt-5 flex gap-2 flex-wrap" id="tabs">${[['ov','Overview'],['el','Eligibility check'],['dc','Documents'],['rm','Roadmap']].map(([k,t])=>`<button class="btn2" data-t="${k}" onclick="tab('${k}')">${t}</button>`).join('')}
+ <button class="btn2" onclick="askAI('${s.id}','Explain eligibility of ${esc(s.name).replace(/'/g,'')} in simple Hindi','hi')">🗣 Explain in Hindi</button><button class="btn2" onclick="askAI('${s.id}','Explain how to apply for ${esc(s.name).replace(/'/g,'')} in simple English','en')">Explain in English</button></div>
+ <div class="card mt-4" id="t-ov"><div class="grid md:grid-cols-2 gap-6"><div><h2 class="mb-2">Benefits</h2>${ul(L.benefits)}<h2 class="mt-4 mb-2">Beneficiaries</h2>${ul(L.beneficiaries)}</div><div><h2 class="mb-2">Published eligibility</h2>${ul(L.eligibility)}</div></div></div>
+ <div class="card mt-4 hidden" id="t-el"></div><div class="card mt-4 hidden" id="t-dc"></div>
+ <div class="card mt-4 hidden" id="t-rm"><ol class="space-y-4">${steps.map(([t,d],i)=>`<li class="flex gap-3"><span class="w-7 h-7 shrink-0 rounded-full bg-navy text-white grid place-items-center text-sm">${i+1}</span><div><b class="text-navy">${t}</b><div class="text-sm text-slate-600 mt-1">${d}</div></div></li>`).join('')}</ol></div>`;
+ tab('ov');eligTab(s);docTab(s)}
+function tab(k){['ov','el','dc','rm'].forEach(x=>$('#t-'+x).classList.toggle('hidden',x!==k));document.querySelectorAll('#tabs [data-t]').forEach(b=>{b.classList.toggle('!bg-navy',b.dataset.t===k);b.classList.toggle('!text-white',b.dataset.t===k)})}
+async function eligTab(s){const el=$('#t-el');if(!Object.values(P()).some(Boolean)){el.innerHTML=`<p class="text-sm">Tell us a little about yourself first. <a class="l" href="#/finder">Open the Scheme Finder</a>.</p>`;return}
+ try{const r=await api('/eligibility',{m:'POST',b:{scheme_id:s.id,profile:PL()}});
+ const V={potential_match:['Potential match','bg-emerald-50 text-emerald-800'],needs_confirmation:['Needs confirmation','bg-amber-50 text-amber-800'],may_not_match:['May not match','bg-red-50 text-red-700']}[r.verdict];
+ const box=(t,a,c)=>`<div class="rounded-xl border p-4"><b class="${c}">${t}</b>${a.length?ul(a):'<p class="text-sm text-slate-400 mt-1">None</p>'}</div>`;
+ el.innerHTML=`<div class="rounded-lg p-3 font-semibold ${V[1]}">${V[0]}</div><div class="grid md:grid-cols-2 gap-4 mt-4">${box('✔ Appear satisfied',r.ok,'text-emerald-700')}${box('? Need confirmation',r.ask,'text-amber-700')}${box('✖ May not be satisfied',r.no,'text-red-600')}${box('○ Missing information',r.missing,'text-slate-600')}</div><p class="text-xs text-slate-500 mt-4">${esc(r.disclaimer)} ${H()?'यह आधिकारिक पात्रता प्रमाणपत्र या स्वीकृति नहीं है।':'This is not an official eligibility certificate or approval.'}</p>`}catch(e){el.innerHTML=errBox(e.message)}}
+async function docTab(s){const el=$('#t-dc');try{const r=await api('/checklist',{m:'POST',b:{scheme_id:s.id,profile:PL()}});const done=()=>S.checks[s.id]||[];
+ const draw=()=>{const n=r.items.filter(i=>done().includes(i.name)).length,pc=Math.round(n/r.items.length*100);
+ el.innerHTML=`<div class="flex justify-between text-sm mb-2"><b>${n}/${r.items.length} ${H()?'तैयार':'ready'}</b><span>${pc}%</span></div><div class="h-2 bg-slate-100 rounded-full mb-4"><div class="h-2 bg-mint rounded-full transition-all" style="width:${pc}%"></div></div>
+ <ul class="space-y-2">${r.items.map((i,k)=>`<li><label class="flex gap-3 items-start text-sm cursor-pointer"><input type="checkbox" class="mt-1 accent-emerald-600" ${done().includes(i.name)?'checked':''} data-k="${k}"><span>${esc(LOC(s).documents[k]?.name||i.name)} ${i.required?'':`<span class="chip !bg-slate-100 !text-slate-500">${esc(i.note)}</span>`}</span></label></li>`).join('')}</ul><p class="text-xs text-slate-500 mt-4">🔒 ${esc(r.privacy)}</p>`;
+ el.querySelectorAll('input').forEach(c=>c.onchange=()=>{const nm=r.items[c.dataset.k].name,a=done().filter(x=>x!==nm);if(c.checked)a.push(nm);S.checks[s.id]=a;save();draw()})};draw()}catch(e){el.innerHTML=errBox(e.message)}}
+
+/* ---------- Assistant ---------- */
+let CUR=null;
+async function assistant(){CUR=CUR||{id:Date.now(),title:'',msgs:[]};let h={};try{h=await api('/health')}catch{}
+ $('#app').innerHTML=`<div class="flex flex-wrap justify-between gap-2 items-center"><h1>AI Scheme Assistant</h1><div class="flex gap-2 items-center"><span class="chip ${h.ai_enabled?'':'!bg-amber-50 !text-amber-700'}">${h.ai_enabled?'AI mode':'Demo mode (no API key)'}</span>
+ <button id="l-en" class="btn2" onclick="setLang('en')">English</button><button id="l-hi" class="btn2" onclick="setLang('hi')">हिन्दी</button><button class="btn2" onclick="CUR=null;assistant()">New chat</button></div></div>
+ <div class="card mt-4 flex flex-col" style="height:60vh"><div id="chat" class="flex-1 overflow-y-auto space-y-3 pr-1"></div>
+ <div class="flex gap-2 flex-wrap my-3">${(S.lang==='hi'?['छात्रों के लिए कौन सी सरकारी योजनाएँ हैं?','ओबीसी छात्रों के लिए छात्रवृत्ति है?','किसानों के लिए कौन सी योजनाएँ हैं?','पीएम-किसान के लिए कौन से दस्तावेज़ चाहिए?']:['Which schemes are available for students?','Are there scholarships for OBC students?','Which schemes support farmers?','What documents are needed for PM-KISAN?']).map(q=>`<button class="chip hover:bg-emerald-100" onclick="send(this.textContent)">${q}</button>`).join('')}</div>
+ <form class="flex gap-2" onsubmit="event.preventDefault();send()"><input id="q" class="inp" maxlength="500" placeholder="${S.lang==='hi'?'अपना सवाल पूछें…':'Ask about any scheme…'}" autocomplete="off"><button class="btn">Send</button></form></div>`;
+ setLang(S.lang,true);drawChat();if(window.PRE){const p=window.PRE;window.PRE=null;send(p.q,p.id)}}
+function setLang(l,q){S.lang=l;save();document.documentElement.lang=l;['en','hi'].forEach(k=>{const b=$('#l-'+k);if(b){b.classList.toggle('!bg-navy',k===l);b.classList.toggle('!text-white',k===l)}});if(!q){toast(l==='hi'?'भाषा: हिन्दी':'Language: English');route()}}
+function askAI(id,q,l){S.lang=l;save();window.PRE={q,id};location.hash='#/assistant'}
+function drawChat(wait){const c=$('#chat');if(!c)return;
+ c.innerHTML=(CUR.msgs.length?'':`<div class="text-center text-slate-500 text-sm py-10">Ask in Hindi or English. Answers come from scheme records with official links.</div>`)+
+ CUR.msgs.map(m=>m.role==='user'?`<div class="flex justify-end"><div class="bg-navy text-white rounded-2xl rounded-br-sm px-4 py-2 max-w-[85%] text-sm">${esc(m.content)}</div></div>`:
+ `<div class="flex"><div class="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-2 max-w-[90%] text-sm">${fmt(m.content)}${m.sources?.length?`<div class="mt-2 pt-2 border-t border-slate-300 text-xs">Sources: ${m.sources.map(s=>`<a class="l" target="_blank" rel="noopener noreferrer" href="${esc(s.url)}">${esc(s.name)}</a>`).join(' · ')}</div>`:''}</div></div>`).join('')+(wait?'<div class="text-sm text-slate-400 animate-pulse">Thinking…</div>':'');c.scrollTop=c.scrollHeight}
+async function send(q,sid){q=(q||$('#q').value).trim();if(!q)return;if($('#q'))$('#q').value='';CUR.msgs.push({role:'user',content:q});if(!CUR.title)CUR.title=q.slice(0,50);drawChat(true);
+ try{const r=await api('/chat',{m:'POST',b:{messages:CUR.msgs.filter(m=>!m.err).slice(-8).map(({role,content})=>({role,content})),lang:S.lang,scheme_id:sid||null}});CUR.msgs.push({role:'assistant',content:r.answer,sources:r.sources})}
+ catch(e){CUR.msgs.push({role:'assistant',content:'⚠ '+e.message,err:1})}
+ S.chats=[{id:CUR.id,title:CUR.title,ts:Date.now(),msgs:CUR.msgs},...S.chats.filter(c=>c.id!==CUR.id)].slice(0,5);save();drawChat()}
+function resume(id){CUR=S.chats.find(c=>c.id===id);location.hash='#/assistant'}
+
+/* ---------- Document AI ---------- */
+async function docsPage(){$('#app').innerHTML=`<h1>Document Understanding</h1><p class="text-sm text-slate-600 mt-1">Upload a public scheme PDF or TXT (max 5 MB). Content is treated as untrusted data; instructions inside it are ignored. Please do not upload personal ID documents.</p>
+ <div class="card mt-5 flex gap-3 flex-wrap items-center"><input type="file" id="f" accept=".pdf,.txt" class="text-sm"><button class="btn" onclick="upl()">Analyse document</button></div><div id="ures" class="mt-6"></div>`}
+async function upl(){const f=$('#f').files[0];if(!f)return toast('Choose a PDF or TXT file first');const fd=new FormData();fd.append('file',f);$('#ures').innerHTML=loading;
+ try{let r;try{r=await fetch(BASE+'/api/upload',{method:'POST',body:fd})}catch{throw new Error(NOSRV)};const d=await r.json();if(!r.ok)throw new Error(typeof d.detail==='string'?d.detail:'Upload failed');
+ const sec=(t,a)=>`<div class="card"><h2 class="mb-2">${t}</h2>${a.length?ul(a):'<p class="text-sm text-slate-400">Nothing found in this document.</p>'}</div>`;
+ $('#ures').innerHTML=`<div class="card mb-4"><h2>Summary <span class="chip">${esc(d.filename)} · ${d.pages} page(s)</span></h2><p class="text-sm mt-2">${esc(d.summary)}</p></div>
+ <div class="grid md:grid-cols-2 gap-4">${sec('Eligibility requirements',d.eligibility)}${sec('Benefits',d.benefits)}${sec('Application steps',d.steps)}
+ <div class="card"><h2 class="mb-2">Document checklist</h2>${d.documents.length?d.documents.map(x=>`<label class="flex gap-2 text-sm mb-1"><input type="checkbox" class="accent-emerald-600 mt-1">${esc(x)}</label>`).join(''):'<p class="text-sm text-slate-400">None found.</p>'}</div></div>
+ <p class="text-xs text-slate-500 mt-3">${esc(d.note)}</p>`;toast('Document analysed')}catch(e){$('#ures').innerHTML=errBox(e.message)}}
+
+/* ---------- Dashboard / Saved / Settings ---------- */
+const byIds=async ids=>{const a=await schemes();return ids.map(i=>a.find(s=>s.id===i)).filter(Boolean)};
+const mini=s=>`<a href="#/scheme/${s.id}" class="block p-3 rounded-lg hover:bg-slate-50 text-sm"><b class="text-navy">${esc(LOC(s).name)}</b><div class="text-xs text-slate-500">${esc(LOC(s).category)}</div></a>`;
+async function dashboard(){const a=await schemes(),has=Object.values(P()).some(Boolean);let rec=[];
+ if(has)try{rec=(await api('/recommend',{m:'POST',b:PL()})).items.slice(0,3)}catch{}
+ const rc=await byIds(S.recent),sv=await byIds(S.saved),ck=Object.entries(S.checks).map(([id,d])=>[a.find(s=>s.id===id),d.length]).filter(([s,n])=>s&&n);
+ const box=(t,h)=>`<div class="card"><h2 class="mb-2">${t}</h2>${h}</div>`,emp=t=>`<p class="text-sm text-slate-400 p-3">${t}</p>`;
+ $('#app').innerHTML=`<h1>Welcome back 👋</h1><p class="text-slate-600 text-sm mt-1">${has?'Here is what is relevant to your profile.':'Start by telling us a little about yourself.'}</p>
+ ${has?'':'<a href="#/finder" class="btn mt-3">Set up my profile</a>'}
+ <div class="mt-6 grid md:grid-cols-3 gap-4">${rec.map(x=>card(x.scheme,x.why,x.ask.length)).join('')}</div>
+ <div class="grid md:grid-cols-2 gap-4 mt-6">
+ ${box('Saved schemes',sv.length?sv.map(mini).join(''):emp('Nothing saved yet. Use ☆ Save on any scheme.'))}
+ ${box('Recently viewed',rc.length?rc.map(mini).join(''):emp('No schemes viewed yet.'))}
+ ${box('Document checklists',ck.length?ck.map(([s,n])=>`<a href="#/scheme/${s.id}" class="block p-3 text-sm hover:bg-slate-50 rounded-lg"><b>${esc(LOC(s).name)}</b> · ${n}/${s.documents.length} ${H()?'दस्तावेज़ तैयार':'documents ready'}</a>`).join(''):emp('Open a scheme → Documents to start a checklist.'))}
+ ${box('Recent AI conversations',S.chats.length?S.chats.map(c=>`<button class="block w-full text-left p-3 text-sm hover:bg-slate-50 rounded-lg" onclick="resume(${c.id})"><b>${esc(c.title)}</b><div class="text-xs text-slate-500">${new Date(c.ts).toLocaleString()}</div></button>`).join(''):emp('No conversations yet.'))}</div>`}
+async function saved(){const sv=await byIds(S.saved);$('#app').innerHTML=`<h1>Saved Schemes</h1><div class="grid md:grid-cols-2 gap-4 mt-5">${sv.length?sv.map(s=>card(s)).join(''):'<div class="card md:col-span-2 text-center text-slate-500">No saved schemes yet. <a class="l" href="#/explore">Explore schemes</a></div>'}</div>`}
+const OPT={age_group:[['under18','Under 18'],['18-25','18–25'],['26-40','26–40'],['41-60','41–60'],['60+','60+']],occupation:[['student','Student'],['farmer','Farmer'],['worker','Worker / labourer'],['business','Business owner'],['other','Other']],income:[['lt1','Below ₹1 lakh'],['1-2.5','₹1–2.5 lakh'],['2.5-8','₹2.5–8 lakh'],['gt8','Above ₹8 lakh']],education:[['below10','Below 10th'],['10th','10th pass'],['12th','12th pass'],['graduate','Graduate'],['pg','Postgraduate']],social:[['General','General'],['OBC','OBC'],['SC','SC'],['ST','ST'],['EWS','EWS'],['EBC/DNT','EBC / DNT'],['na','Prefer not to say']]};
+const LB={state:'State',age_group:'Age group',occupation:'Occupation',income:'Annual family income',education:'Education level',social:'Category',owns_land:'Owns land'};
+const optv=(k,v)=>k==='owns_land'?(v?'Yes':'No'):((OPT[k]||[]).find(o=>o[0]===v)?.[1]||v);
+async function settings(){const p=P(),rows=Object.entries(p).filter(([,v])=>v!==null&&v!==undefined&&v!=='').map(([k,v])=>`<li><b>${LB[k]||k}:</b> ${esc(optv(k,v))}</li>`).join('');
+ $('#app').innerHTML=`<h1>Profile &amp; Settings</h1><div class="grid md:grid-cols-2 gap-4 mt-5"><div class="card"><h2 class="mb-2">Your profile</h2>${rows?`<ul class="text-sm space-y-1">${rows}</ul>`:'<p class="text-sm text-slate-400">Not set.</p>'}<a href="#/finder" class="btn2 mt-3">Edit profile</a></div>
+ <div class="card"><h2 class="mb-2">Preferences &amp; privacy</h2><p class="text-sm mb-2">Language</p><div class="flex gap-2"><button id="l-en" class="btn2" onclick="setLang('en')">English</button><button id="l-hi" class="btn2" onclick="setLang('hi')">हिन्दी</button></div>
+ <p class="text-xs text-slate-500 mt-4">Your profile, saved schemes and chats are stored only in this browser. We never ask for Aadhaar, OTPs, passwords or bank details.</p><button class="btn2 mt-3 !text-red-600" onclick="if(confirm('Delete all local data?')){localStorage.removeItem('ys');location.reload()}">Delete my data</button></div></div>`;setLang(S.lang,true)}
+
+/* ---------- Admin ---------- */
+const ap=(p,m,b)=>api(p,{m,b,h:{'X-Admin-Key':sessionStorage.getItem('ak')||''}});
+const BLANK={id:"new-scheme",name:"",description:"",category:"",department:"",beneficiaries:[],level:"central",state:"ALL",eligibility:[],benefits:[],documents:[{name:""}],steps:[],warnings:[],official_url:"https://",source_url:"https://",keywords:[],rules:{}};
+async function admin(){const k=sessionStorage.getItem('ak');
+ if(!k){$('#app').innerHTML=`<div class="card max-w-md"><h1>Admin sign-in</h1><input id="ak" type="password" class="inp mt-4" placeholder="Admin key"><button class="btn mt-3" onclick="sessionStorage.setItem('ak',$('#ak').value);admin()">Continue</button></div>`;return}
+ try{const [st,l]=await Promise.all([ap('/admin/stats'),ap('/admin/schemes')]);window.ADM=l.items;
+ $('#app').innerHTML=`<div class="flex justify-between"><h1>Scheme Management</h1><button class="btn2" onclick="sessionStorage.removeItem('ak');ALL=null;location.hash='#/'">Sign out</button></div>
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">${[['Schemes',st.schemes],['Verified',st.verified],['AI chats',st.chat],['Recommendations',st.recommend]].map(([a,b])=>`<div class="card !p-4"><div class="text-2xl font-bold text-navy">${b}</div><div class="text-xs text-slate-500">${a}</div></div>`).join('')}</div>
+ <div class="card mt-4 overflow-x-auto"><table class="w-full text-sm"><tr class="text-left text-slate-500"><th>Scheme</th><th>Status</th><th>Last verified</th><th></th></tr>${l.items.map((s,i)=>`<tr class="border-t"><td class="py-2">${esc(s.name)}</td><td>${esc(s.verification_status)}</td><td>${esc(s.last_verified||'-')}</td><td class="text-right whitespace-nowrap"><button class="btn2" onclick="admEdit(${i})">Edit</button> <button class="btn2" onclick="admVerify('${s.id}')">Mark verified</button> <button class="btn2 !text-red-600" onclick="admDel('${s.id}')">Delete</button></td></tr>`).join('')}</table></div>
+ <div class="card mt-4"><h2>Add / edit (JSON)</h2><textarea id="aj" rows="14" class="inp font-mono mt-2">${esc(JSON.stringify(BLANK,null,2))}</textarea><button class="btn mt-3" onclick="admSave()">Save scheme</button></div>`}
+ catch(e){sessionStorage.removeItem('ak');$('#app').innerHTML=errBox(e.message)+'<a class="btn2 mt-3" href="#/admin">Try again</a>'}}
+const admEdit=i=>{$('#aj').value=JSON.stringify(ADM[i],null,2);$('#aj').scrollIntoView({behavior:'smooth'})};
+async function admDo(f,msg){try{await f();ALL=null;toast(msg);admin()}catch(e){toast(e.message)}}
+const admVerify=id=>admDo(()=>ap(`/admin/schemes/${id}/verify`,'POST'),'Marked verified today');
+const admDel=id=>confirm('Delete this scheme?')&&admDo(()=>ap(`/admin/schemes/${id}`,'DELETE'),'Deleted');
+function admSave(){let o;try{o=JSON.parse($('#aj').value)}catch{return toast('Invalid JSON')}
+ const ex=ADM.some(s=>s.id===o.id);admDo(()=>ap(ex?`/admin/schemes/${o.id}`:'/admin/schemes',ex?'PUT':'POST',o),'Saved')}
+
+/* ---------- Router ---------- */
+const R={'':home,finder,assistant,explore,docs:docsPage,dashboard,saved,settings,admin};
+async function route(){const[p,id]=(location.hash.slice(2)||'').split('/');nav(p);$('#app').innerHTML=loading;
+ try{p==='scheme'?await detail(decodeURIComponent(id)):await (R[p]||home)()}catch(e){$('#app').innerHTML=errBox(e.message)}scrollTo(0,0)}
+const HI={"Andhra Pradesh": "आंध्र प्रदेश", "Arunachal Pradesh": "अरुणाचल प्रदेश", "Assam": "असम", "Bihar": "बिहार", "Chhattisgarh": "छत्तीसगढ़", "Goa": "गोवा", "Gujarat": "गुजरात", "Haryana": "हरियाणा", "Himachal Pradesh": "हिमाचल प्रदेश", "Jharkhand": "झारखंड", "Karnataka": "कर्नाटक", "Kerala": "केरल", "Madhya Pradesh": "मध्य प्रदेश", "Maharashtra": "महाराष्ट्र", "Manipur": "मणिपुर", "Meghalaya": "मेघालय", "Mizoram": "मिज़ोरम", "Nagaland": "नागालैंड", "Odisha": "ओडिशा", "Punjab": "पंजाब", "Rajasthan": "राजस्थान", "Sikkim": "सिक्किम", "Tamil Nadu": "तमिलनाडु", "Telangana": "तेलंगाना", "Tripura": "त्रिपुरा", "Uttar Pradesh": "उत्तर प्रदेश", "Uttarakhand": "उत्तराखंड", "West Bengal": "पश्चिम बंगाल", "Delhi": "दिल्ली", "Jammu and Kashmir": "जम्मू और कश्मीर", "Ladakh": "लद्दाख", "Puducherry": "पुदुचेरी", "Chandigarh": "चंडीगढ़", "State:": "राज्य:", "Age group:": "आयु वर्ग:", "Occupation:": "पेशा:", "Annual family income:": "परिवार की वार्षिक आय:", "Education level:": "शिक्षा स्तर:", "Category:": "श्रेणी:", "Owns land:": "ज़मीन का स्वामित्व:", "Occupation": "पेशा", "Saved to your dashboard": "आपके डैशबोर्ड में सहेजा गया", "Removed from saved": "सहेजी सूची से हटाया गया", "Recommendations ready": "सुझाव तैयार हैं", "Document analysed": "दस्तावेज़ का विश्लेषण हो गया", "Choose a PDF or TXT file first": "पहले PDF या TXT फ़ाइल चुनें", "Extracted automatically from an uploaded file. Verify against the official source.": "अपलोड की गई फ़ाइल से स्वतः निकाला गया। आधिकारिक स्रोत से मिलान करें।","Home": "होम", "Find schemes": "योजनाएँ खोजें", "AI Assistant": "एआई सहायक", "Explore": "योजनाएँ देखें", "Document AI": "दस्तावेज़ एआई", "Dashboard": "डैशबोर्ड", "Saved": "सहेजी गई", "Settings": "सेटिंग्स", "Admin": "एडमिन", "Independent guide · Hindi & English": "स्वतंत्र मार्गदर्शक · हिन्दी और अंग्रेज़ी", "The Right Scheme. The Right Guidance. For Everyone.": "सही योजना। सही मार्गदर्शन। हर किसी के लिए।", "Discover government schemes, understand eligibility in simple language, prepare your documents and reach the official portal.": "सरकारी योजनाएँ खोजें, पात्रता सरल भाषा में समझें, दस्तावेज़ तैयार करें और आधिकारिक पोर्टल तक पहुँचें।", "Find my schemes →": "मेरी योजनाएँ खोजें →", "Ask the AI assistant": "एआई सहायक से पूछें", "Your journey": "आपकी यात्रा", "Choose your state and category": "अपना राज्य और श्रेणी चुनें", "Share basic, non-sensitive details": "बुनियादी, गैर-संवेदनशील जानकारी दें", "Get schemes that may fit you": "आपके लिए संभावित योजनाएँ पाएँ", "Understand eligibility in Hindi or English": "पात्रता हिन्दी या अंग्रेज़ी में समझें", "Generate your document checklist": "अपनी दस्तावेज़ सूची बनाएँ", "Follow the roadmap to the official portal": "रोडमैप के साथ आधिकारिक पोर्टल तक जाएँ", "Grounded answers": "भरोसेमंद उत्तर", "The assistant answers only from structured scheme records and cites the official link. If it does not know, it says so.": "सहायक केवल योजना रिकॉर्ड से उत्तर देता है और आधिकारिक लिंक बताता है। जानकारी न हो तो साफ़ बता देता है।", "Privacy first": "निजता सबसे पहले", "No Aadhaar, OTPs or bank details. Your profile stays in your browser.": "आधार, ओटीपी या बैंक विवरण नहीं। आपकी प्रोफ़ाइल आपके ब्राउज़र में ही रहती है।", "Honest about limits": "सीमाओं के बारे में ईमानदार", "We show when each record was last verified and never promise eligibility.": "हम बताते हैं कि हर रिकॉर्ड आख़िरी बार कब जाँचा गया, और पात्रता की गारंटी नहीं देते।", "Smart Scheme Finder": "स्मार्ट योजना खोजक", "Share only what you are comfortable with. Nothing here is sensitive, and it stays in your browser.": "केवल वही जानकारी दें जिसमें आप सहज हों। यहाँ कुछ भी संवेदनशील नहीं है और यह आपके ब्राउज़र में रहती है।", "State": "राज्य", "Age group": "आयु वर्ग", "You are a…": "आप हैं…", "Annual family income": "परिवार की वार्षिक आय", "Education level": "शिक्षा स्तर", "Category (optional)": "श्रेणी (वैकल्पिक)", "Family owns cultivable land? (optional)": "परिवार के पास खेती की ज़मीन है? (वैकल्पिक)", "Select…": "चुनें…", "Under 18": "18 से कम", "Student": "विद्यार्थी", "Farmer": "किसान", "Worker / labourer": "मज़दूर / कामगार", "Business owner": "व्यवसायी", "Other": "अन्य", "Below ₹1 lakh": "₹1 लाख से कम", "₹1–2.5 lakh": "₹1–2.5 लाख", "₹2.5–8 lakh": "₹2.5–8 लाख", "Above ₹8 lakh": "₹8 लाख से अधिक", "Below 10th": "10वीं से कम", "10th pass": "10वीं पास", "12th pass": "12वीं पास", "Graduate": "स्नातक", "Postgraduate": "स्नातकोत्तर", "General": "सामान्य", "EBC / DNT": "ईबीसी / डीएनटी", "Prefer not to say": "बताना नहीं चाहता/चाहती", "Yes": "हाँ", "No": "नहीं", "Indicative only. The official authority decides eligibility.": "यह केवल संकेत है। पात्रता का अंतिम निर्णय आधिकारिक प्राधिकरण करता है।", "Why it may be relevant": "यह क्यों उपयोगी हो सकती है", "Key benefit:": "मुख्य लाभ:", "View details": "विवरण देखें", "☆ Save": "☆ सहेजें", "★ Saved": "★ सहेजा गया", "Scheme Explorer": "योजना एक्सप्लोरर", "Search by scheme name…": "योजना के नाम से खोजें…", "Category": "श्रेणी", "Beneficiary": "लाभार्थी", "Level": "स्तर", "Central": "केंद्रीय", "No schemes match these filters. Try clearing one.": "इन फ़िल्टर से कोई योजना नहीं मिली। कोई फ़िल्टर हटाकर देखें।", "← All schemes": "← सभी योजनाएँ", "Official portal ↗": "आधिकारिक पोर्टल ↗", "Overview": "सारांश", "Eligibility check": "पात्रता जाँच", "Documents": "दस्तावेज़", "Roadmap": "रोडमैप", "🗣 Explain in Hindi": "🗣 हिन्दी में समझाएँ", "Explain in English": "अंग्रेज़ी में समझाएँ", "Benefits": "लाभ", "Beneficiaries": "लाभार्थी", "Published eligibility": "प्रकाशित पात्रता", "Potential match": "संभावित मेल", "Needs confirmation": "पुष्टि आवश्यक", "May not match": "मेल न खाए", "✔ Appear satisfied": "✔ पूरी होती दिखती हैं", "? Need confirmation": "? पुष्टि चाहिए", "✖ May not be satisfied": "✖ शायद पूरी न हों", "○ Missing information": "○ जानकारी अधूरी", "None": "कोई नहीं", "Tell us a little about yourself first.": "पहले अपने बारे में थोड़ा बताएँ।", "Open the Scheme Finder": "योजना खोजक खोलें", "Understand the scheme": "योजना को समझें", "Check eligibility conditions": "पात्रता शर्तें जाँचें", "Prepare required documents": "ज़रूरी दस्तावेज़ तैयार करें", "Visit the official application portal": "आधिकारिक आवेदन पोर्टल पर जाएँ", "Complete the application": "आवेदन पूरा करें", "Submit and save the acknowledgement": "जमा करें और पावती सुरक्षित रखें", "Track status on the official portal": "आधिकारिक पोर्टल पर स्थिति देखें", "Use the Eligibility tab, then confirm on the official site.": "पात्रता टैब देखें, फिर आधिकारिक साइट पर पुष्टि करें।", "Use the Documents tab and tick items as you collect them.": "दस्तावेज़ टैब में सूची देखें और इकट्ठा होते ही टिक करें।", "Keep the application number or receipt safely.": "आवेदन संख्या या रसीद सुरक्षित रखें।", "Where the portal offers status tracking.": "जहाँ पोर्टल पर स्थिति देखने की सुविधा हो।", "AI Scheme Assistant": "एआई योजना सहायक", "New chat": "नई चैट", "Ask in Hindi or English. Answers come from scheme records with official links.": "हिन्दी या अंग्रेज़ी में पूछें। उत्तर योजना रिकॉर्ड और आधिकारिक लिंक से आते हैं।", "Send": "भेजें", "Thinking…": "सोच रहा है…", "Sources:": "स्रोत:", "Demo mode (no API key)": "डेमो मोड (एपीआई कुंजी नहीं)", "AI mode": "एआई मोड", "Document Understanding": "दस्तावेज़ समझें", "Upload a public scheme PDF or TXT (max 5 MB). Content is treated as untrusted data; instructions inside it are ignored. Please do not upload personal ID documents.": "किसी सार्वजनिक योजना का PDF या TXT अपलोड करें (अधिकतम 5 MB)। सामग्री को अविश्वसनीय डेटा माना जाता है। कृपया पहचान पत्र अपलोड न करें।", "Analyse document": "दस्तावेज़ का विश्लेषण करें", "Summary": "सारांश", "Eligibility requirements": "पात्रता की शर्तें", "Application steps": "आवेदन के चरण", "Document checklist": "दस्तावेज़ सूची", "Nothing found in this document.": "इस दस्तावेज़ में कुछ नहीं मिला।", "Welcome back 👋": "वापसी पर स्वागत है 👋", "Here is what is relevant to your profile.": "आपकी प्रोफ़ाइल के अनुसार उपयोगी योजनाएँ।", "Start by telling us a little about yourself.": "शुरू करने के लिए अपने बारे में थोड़ा बताएँ।", "Set up my profile": "मेरी प्रोफ़ाइल बनाएँ", "Saved schemes": "सहेजी गई योजनाएँ", "Recently viewed": "हाल में देखी गई", "Document checklists": "दस्तावेज़ सूचियाँ", "Recent AI conversations": "हाल की एआई बातचीत", "Nothing saved yet. Use ☆ Save on any scheme.": "अभी कुछ सहेजा नहीं है। किसी भी योजना पर ☆ सहेजें दबाएँ।", "No schemes viewed yet.": "अभी कोई योजना नहीं देखी।", "Open a scheme → Documents to start a checklist.": "सूची शुरू करने के लिए योजना खोलें → दस्तावेज़।", "No conversations yet.": "अभी कोई बातचीत नहीं।", "Saved Schemes": "सहेजी गई योजनाएँ", "No saved schemes yet.": "अभी कोई योजना सहेजी नहीं गई।", "Explore schemes": "योजनाएँ देखें", "Profile & Settings": "प्रोफ़ाइल और सेटिंग्स", "Your profile": "आपकी प्रोफ़ाइल", "Not set.": "सेट नहीं है।", "Edit profile": "प्रोफ़ाइल बदलें", "Preferences & privacy": "पसंद और निजता", "Language": "भाषा", "Your profile, saved schemes and chats are stored only in this browser. We never ask for Aadhaar, OTPs, passwords or bank details.": "आपकी प्रोफ़ाइल, सहेजी योजनाएँ और चैट केवल इसी ब्राउज़र में रहती हैं। हम आधार, ओटीपी, पासवर्ड या बैंक विवरण कभी नहीं माँगते।", "Delete my data": "मेरा डेटा मिटाएँ"};
+const FOOT={en:"YojanaSaathi AI is an independent guide and is <b>not affiliated with any government body</b>. Information may be outdated; eligibility is decided only by the official authority. Always confirm on the official website. Never share Aadhaar numbers, OTPs, passwords or bank details here.",hi:"योजनासाथी एआई एक स्वतंत्र मार्गदर्शक है और <b>किसी सरकारी संस्था से जुड़ा नहीं है</b>। जानकारी पुरानी हो सकती है; पात्रता का निर्णय केवल आधिकारिक प्राधिकरण करता है। हमेशा आधिकारिक वेबसाइट पर पुष्टि करें। यहाँ आधार संख्या, ओटीपी, पासवर्ड या बैंक विवरण कभी साझा न करें।"};
+function applyLang(){const h=S.lang==='hi';document.documentElement.lang=S.lang;
+ const f=document.querySelector('footer');if(f.dataset.l!==S.lang){f.dataset.l=S.lang;f.innerHTML=FOOT[S.lang]}
+ const bv=h?['योजनासाथी','एआई']:['YojanaSaathi','AI'];[['#bn',0],['#ba',1]].forEach(([q,i])=>{const e=$(q);if(e&&e.textContent!==bv[i])e.textContent=bv[i]});
+ const ti=h?'योजनासाथी एआई: सही योजना। सही मार्गदर्शन।':'YojanaSaathi AI: The Right Scheme. The Right Guidance.';if(document.title!==ti)document.title=ti;
+ if(!h)return;
+ for(const root of [$('#nav'),$('#app')]){const w=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let x;while(x=w.nextNode()){const k=x.nodeValue.trim();if(HI[k])x.nodeValue=x.nodeValue.replace(k,HI[k])}
+  root.querySelectorAll('[placeholder]').forEach(e=>{if(HI[e.placeholder])e.placeholder=HI[e.placeholder]})}}
+new MutationObserver(applyLang).observe(document.body,{childList:true,subtree:true});
+addEventListener('hashchange',route);route();
+</script></body></html>
